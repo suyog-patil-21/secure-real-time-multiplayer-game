@@ -4,7 +4,8 @@ const border = 5;
 const playerWidth = 30;
 const playerHeight = 30;
 const infoBar = 45;
-
+const collectibleWidth = 15;
+const collectibleHeight = 15;
 
 const canvasMetaData = {
     canvasWidth,
@@ -14,7 +15,14 @@ const canvasMetaData = {
     playgroundWidth: canvasWidth - border * 2,
     playgroundHeight: canvasHeight - infoBar - border * 2,
     playgroundMaxX: canvasWidth - playerWidth - border,
-    playgroundMaxY: canvasHeight - playerWidth - border,
+    playgroundMaxY: canvasHeight - playerHeight - border,
+    playerHeight,
+    playerWidth,
+    collectibleHeight,
+    collectibleWidth
 }
 
-export { canvasMetaData };
+function getRandomCoordinate(min, max, multiple) {
+    return Math.floor(Math.random() * ((max - min) / multiple)) * multiple + min;
+}
+export { canvasMetaData, getRandomCoordinate };
