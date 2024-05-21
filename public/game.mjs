@@ -21,25 +21,38 @@ const bronzeCoinImg = loadImg('/assets/bronze-coin.png');
 const mainPlayerImg = loadImg('/assets/main-player.png');
 const otherPlayerImg = loadImg('/assets/other-player.png');
 
-const players = [];
-const mainPlayer = new Player({
-    x: getRandomCoordinate(canvasMetaData.playgroundMinX, canvasMetaData.playgroundMaxX, 5),
-    y: getRandomCoordinate(canvasMetaData.playgroundMinY, canvasMetaData.playgroundMaxY, 5),
-    score: 0,
-    id: Date.now()
-})
+let currentPlayers = [];
+let collectible;
 
-players.push(mainPlayer);
-controls(mainPlayer);
+socket.on('init', ({ id, players, coin }) => {
+    console.log(`User ${id} connected`);
 
-socket.on('connect', () => {
-    console.log(sock);
+    const mainPlayer = new Player({
+        x: getRandomCoordinate(canvasMetaData.playgroundMinX, canvasMetaData.playgroundMaxX, 5),
+        y: getRandomCoordinate(canvasMetaData.playgroundMinY, canvasMetaData.playgroundMaxY, 5),
+        score: 0,
+        id: id,
+        main: true
+    });
+
+    socket.emit('new-player', mainPlayer);
+
+    controls(mainPlayer, socket);
+
     socket.on('new-player', (newPlayer) => {
-        console.log(players);
-    })
-})
+        const ids = currentPlayers.map((value, index, arr) => value.id);
+        console.log(`New-player ${newPlayer} ${ids}`);
+        if (!ids.includes(newPlayer.id)) currentPlayers.push(newPlayer);
+    });
 
-function draw() {
+    currentPlayers = players.map(value => new Player(value)).concat(mainPlayer);
+    collectible = new Collectible(coin);
+    
+    draw();
+    console.log(`Init End: \n${coin}\n${currentPlayers}`)
+});
+
+const draw = () => {
     context.clearRect(0, 0, canvas.width, canvas.height);
 
     context.fillStyle = "#220"
@@ -63,9 +76,9 @@ function draw() {
     context.textAlign = "center";
     context.fillText('Coin Race', canvasMetaData.canvasWidth / 2, 32.5)
 
-    mainPlayer.draw(context, { mainPlayerImg, otherPlayerImg }, players)
+    currentPlayers.forEach(player => player.draw(context, collectible, { mainPlayerImg, otherPlayerImg }, currentPlayers));
+
+    collectible.draw(context, { goldCoinImg, silverCoinImg, bronzeCoinImg });
 
     window.requestAnimationFrame(draw);
 }
-
-draw()

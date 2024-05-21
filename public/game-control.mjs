@@ -1,4 +1,4 @@
-const controls = (player) => {
+const controls = (player, socket) => {
     const getKey = e => {
         if (e.keyCode === 87 || e.keyCode === 38) return 'up';
         if (e.keyCode === 83 || e.keyCode === 40) return 'down';
@@ -10,12 +10,14 @@ const controls = (player) => {
         let dir = getKey(e);
         if (dir) {
             player.startDirection(getKey(e));
+            socket.emit('move-player', dir, { x: player.x, y: player.y });
         }
     }
     document.onkeyup = e => {
         let dir = getKey(e);
         if (dir) {
             player.stopDirection(getKey(e));
+            socket.emit('stop-player', dir, { x: player.x, y: player.y });
         }
     }
 }

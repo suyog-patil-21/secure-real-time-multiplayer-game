@@ -9,6 +9,7 @@ const helmet = require('helmet');
 
 const fccTestingRoutes = require('./routes/fcctesting.js');
 const runner = require('./test-runner.js');
+const { default: Collectible } = require('./public/Collectible.mjs');
 
 const app = express();
 const httpServer = createServer(app);
@@ -34,12 +35,19 @@ app.route('/')
     res.sendFile(process.cwd() + '/views/index.html');
   });
 
-io.on('connection', (sock) => {
-  console.log('sock', sock.id);
-  io.on('new-player', (data) => {
+let players = [];
+let coin = { x: 140, y: 240, value: 1, id: Date.now() };
 
-    io.emit('new-player', sock.id);
-  })
+io.on('connection', (socketConn) => {
+  console.log(`User ${socketConn.id} connected`);
+
+  socketConn.emit('init', { id: socketConn.id, players, coin });
+
+  socketConn.on('new-player', (data) => {
+    players.push(data);
+    socketConn.emit('new-player', data);
+  });
+
 });
 
 

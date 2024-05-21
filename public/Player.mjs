@@ -1,7 +1,7 @@
 import { canvasMetaData } from "./canvas-data.mjs";
 
 class Player {
-  constructor({ x, y, score = 0, id }) {
+  constructor({ x, y, score = 0, id , main }) {
     this.id = id;
     this.score = score;
     this.x = x;
@@ -10,18 +10,25 @@ class Player {
     this.playerHeight = canvasMetaData.playerHeight;
     this.speed = 5;
     this.movementDirection = {};
+    this.isMain = main;
   }
 
-  draw(context, playerType, playersArry) {
+  draw(context, coin, playerType, playersArry) {
     const currDir = Object.keys(this.movementDirection).filter(
       dir => this.movementDirection[dir]
     );
-    context.fillStyle = 'white';
-    context.font = `13px 'Press Start 2P'`;
-    context.textAlign = "center";
-    context.fillText(this.calculateRank(playersArry), 560, 32.5)
     currDir.forEach(dir => this.movePlayer(dir, this.speed));
-    context.drawImage(playerType.mainPlayerImg, this.x, this.y);
+    if (this.isMain) {
+      context.font = `13px 'Press Start 2P'`;
+      context.fillText(this.calculateRank(playersArry), 560, 32.5)
+
+      context.drawImage(playerType.mainPlayerImg, this.x, this.y);
+    } else {
+      context.drawImage(playerType.otherPlayerImg, this.x, this.y);
+    }
+    if(this.collision(coin)){
+      coin.destroyed = this.id;
+    }
   }
 
   startDirection(dir) {
