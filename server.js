@@ -46,6 +46,21 @@ function generateCoin() {
 
 let players = [];
 let coin = new generateCoin();
+const MAX_TIME = 2 * 60 * 1000;
+let timerId = null;
+
+function setTimer() {
+  if (timerId) {
+    clearTimeout(timerId);
+  };
+  timerId = setTimeout(
+    () => {
+      players.sort(function (a, b) { return b.score - a.score });
+      players.forEach((player) => {
+        io.to(player.id).emit('end-game', player.id == players[0].id ? "Win" : "Lose");
+      });
+    }, MAX_TIME);
+}
 
 io.on('connection', (socketConn) => {
   console.log(`User ${socketConn.id} connected`);
@@ -53,9 +68,13 @@ io.on('connection', (socketConn) => {
   socketConn.emit('init', { id: socketConn.id, players, coin });
 
   socketConn.on('disconnect', (reason) => {
-    console.log(`id: ${socketConn.id} reason:${reason}`);
+    console.log(`id: ${socketConn.id}Disconnected, reason:${reason}`);
     players = players.filter((player) => player.id !== socketConn.id);
     io.emit('remove-player', socketConn.id);
+    if (players.length === 0 && timerId) {
+      clearTimeout(timerId);
+      timerId = null;
+    }
   });
 
   socketConn.on('new-player', (data) => {
@@ -64,13 +83,13 @@ io.on('connection', (socketConn) => {
     io.emit('new-player', data);
     delete data.isMain;
     if (!ids.includes(data.id)) players.push(data);
+    setTimer();
   });
 
   socketConn.on('move-player', (dir, posObj) => {
     const player = players.find((value) => value.id === socketConn.id);
     players.x = posObj.x;
     players.y = posObj.y;
-    console.log(socketConn.id, dir, posObj);
     io.emit('move-player', { id: socketConn.id, dir, posObj: { x: players.x, y: players.y } })
   });
 
@@ -78,7 +97,6 @@ io.on('connection', (socketConn) => {
     const player = players.find((value) => value.id === socketConn.id);
     players.x = posObj.x;
     players.y = posObj.y;
-    console.log(socketConn.id, dir, posObj);
     io.emit('stop-player', { id: socketConn.id, dir, posObj: { x: players.x, y: players.y } })
   });
 
@@ -91,8 +109,6 @@ io.on('connection', (socketConn) => {
       io.emit('update-player', player);
     }
   });
-
-  console.log("socket end");
 });
 
 

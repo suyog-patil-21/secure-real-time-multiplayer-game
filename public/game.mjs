@@ -23,6 +23,7 @@ const otherPlayerImg = loadImg('/assets/other-player.png');
 
 let currentPlayers = [];
 let collectible;
+let endGame;
 
 socket.on('init', ({ id, players, coin }) => {
     console.log(`User ${id} connected`);
@@ -59,13 +60,15 @@ socket.on('init', ({ id, players, coin }) => {
         movePlayer.y = posObj.y;
     });
 
+    socket.on('end-game', result => { endGame = result });
+
     socket.on('new-coin', newCoin => {
         collectible = new Collectible(newCoin);
     });
 
     socket.on('update-player', updatedPlayer => {
         const scoringPlayer = currentPlayers.find(obj => obj.id === updatedPlayer.id);
-        scoringPlayer.score = updatedPlayer.score; 
+        scoringPlayer.score = updatedPlayer.score;
     });
 
     socket.on('remove-player', id => {
@@ -103,7 +106,6 @@ const draw = () => {
     context.fillText('Coin Race', canvasMetaData.canvasWidth / 2, 32.5)
 
     currentPlayers.forEach(player => player.draw(context, collectible, { mainPlayerImg, otherPlayerImg }, currentPlayers));
-    debugger;
 
     if (collectible.destroyed) {
         socket.emit('destroyed-coin', {
@@ -115,5 +117,15 @@ const draw = () => {
 
     collectible.draw(context, { goldCoinImg, silverCoinImg, bronzeCoinImg });
 
-    window.requestAnimationFrame(draw);
+    if (endGame) {
+        context.fillStyle = 'white';
+        context.font = `13px 'Press Start 2P'`;
+        context.fillText(
+            `You ${endGame}! Restart and try again.`,
+            canvasMetaData.canvasWidth / 2,
+            80
+        );
+    }
+
+    if (!endGame) window.requestAnimationFrame(draw);
 }
