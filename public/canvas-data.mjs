@@ -25,4 +25,10 @@ const canvasMetaData = {
 function getRandomCoordinate(min, max, multiple) {
     return Math.floor(Math.random() * ((max - min) / multiple)) * multiple + min;
 }
+
+try {
+    module.exports = { canvasMetaData, getRandomCoordinate };
+} catch {
+}
+
 export { canvasMetaData, getRandomCoordinate };

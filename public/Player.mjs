@@ -26,6 +26,7 @@ class Player {
     } else {
       context.drawImage(playerType.otherPlayerImg, this.x, this.y);
     }
+    
     if(this.collision(coin)){
       coin.destroyed = this.id;
     }

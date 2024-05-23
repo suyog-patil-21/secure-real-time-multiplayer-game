@@ -9,7 +9,7 @@ const helmet = require('helmet');
 
 const fccTestingRoutes = require('./routes/fcctesting.js');
 const runner = require('./test-runner.js');
-const { default: Collectible } = require('./public/Collectible.mjs');
+const { canvasMetaData, getRandomCoordinate } = require('./public/canvas-data.mjs');
 
 const app = express();
 const httpServer = createServer(app);
@@ -35,19 +35,64 @@ app.route('/')
     res.sendFile(process.cwd() + '/views/index.html');
   });
 
+
+function generateCoin() {
+  return {
+    x: getRandomCoordinate(canvasMetaData.playgroundMinX, canvasMetaData.canvasWidth, 5),
+    y: getRandomCoordinate(canvasMetaData.playgroundMinY, canvasMetaData.canvasHeight, 5),
+    value: Math.floor(Math.random()) * 3 + 1, id: Date.now()
+  };
+}
+
 let players = [];
-let coin = { x: 140, y: 240, value: 1, id: Date.now() };
+let coin = new generateCoin();
 
 io.on('connection', (socketConn) => {
   console.log(`User ${socketConn.id} connected`);
 
   socketConn.emit('init', { id: socketConn.id, players, coin });
 
-  socketConn.on('new-player', (data) => {
-    players.push(data);
-    socketConn.emit('new-player', data);
+  socketConn.on('disconnect', (reason) => {
+    console.log(`id: ${socketConn.id} reason:${reason}`);
+    players = players.filter((player) => player.id !== socketConn.id);
+    io.emit('remove-player', socketConn.id);
   });
 
+  socketConn.on('new-player', (data) => {
+    const ids = players.map((value) => value.id);
+    data.isMain = (data.id === socketConn.id);
+    io.emit('new-player', data);
+    delete data.isMain;
+    if (!ids.includes(data.id)) players.push(data);
+  });
+
+  socketConn.on('move-player', (dir, posObj) => {
+    const player = players.find((value) => value.id === socketConn.id);
+    players.x = posObj.x;
+    players.y = posObj.y;
+    console.log(socketConn.id, dir, posObj);
+    io.emit('move-player', { id: socketConn.id, dir, posObj: { x: players.x, y: players.y } })
+  });
+
+  socketConn.on('stop-player', (dir, posObj) => {
+    const player = players.find((value) => value.id === socketConn.id);
+    players.x = posObj.x;
+    players.y = posObj.y;
+    console.log(socketConn.id, dir, posObj);
+    io.emit('stop-player', { id: socketConn.id, dir, posObj: { x: players.x, y: players.y } })
+  });
+
+  socketConn.on('destroyed-coin', ({ playerId, coinValue, coinId }) => {
+    if (coin.id == coinId) {
+      const player = players.find((value) => value.id === playerId);
+      player.score += coin.value;
+      coin = generateCoin();
+      io.emit('new-coin', coin);
+      io.emit('update-player', player);
+    }
+  });
+
+  console.log("socket end");
 });
 
 

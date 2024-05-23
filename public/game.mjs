@@ -39,17 +39,43 @@ socket.on('init', ({ id, players, coin }) => {
 
     controls(mainPlayer, socket);
 
-    socket.on('new-player', (newPlayer) => {
-        const ids = currentPlayers.map((value, index, arr) => value.id);
-        console.log(`New-player ${newPlayer} ${ids}`);
-        if (!ids.includes(newPlayer.id)) currentPlayers.push(newPlayer);
+    socket.on('new-player', newPlayer => {
+        const playerIds = currentPlayers.map(player => player.id);
+        if (!playerIds.includes(newPlayer.id)) currentPlayers.push(new Player(newPlayer));
+    });
+
+    socket.on('move-player', ({ id, dir, posObj }) => {
+        const movePlayer = currentPlayers.find(value => value.id === id);
+        movePlayer.startDirection(dir);
+
+        movePlayer.x = posObj.x;
+        movePlayer.y = posObj.y;
+    });
+
+    socket.on('stop-player', ({ id, dir, posObj }) => {
+        const movePlayer = currentPlayers.find(value => value.id === id);
+        movePlayer.stopDirection(dir);
+        movePlayer.x = posObj.x;
+        movePlayer.y = posObj.y;
+    });
+
+    socket.on('new-coin', newCoin => {
+        collectible = new Collectible(newCoin);
+    });
+
+    socket.on('update-player', updatedPlayer => {
+        const scoringPlayer = currentPlayers.find(obj => obj.id === updatedPlayer.id);
+        scoringPlayer.score = updatedPlayer.score; 
+    });
+
+    socket.on('remove-player', id => {
+        console.log(`${id} disconnected`);
+        currentPlayers = currentPlayers.filter(player => player.id !== id);
     });
 
     currentPlayers = players.map(value => new Player(value)).concat(mainPlayer);
     collectible = new Collectible(coin);
-    
     draw();
-    console.log(`Init End: \n${coin}\n${currentPlayers}`)
 });
 
 const draw = () => {
@@ -77,6 +103,15 @@ const draw = () => {
     context.fillText('Coin Race', canvasMetaData.canvasWidth / 2, 32.5)
 
     currentPlayers.forEach(player => player.draw(context, collectible, { mainPlayerImg, otherPlayerImg }, currentPlayers));
+    debugger;
+
+    if (collectible.destroyed) {
+        socket.emit('destroyed-coin', {
+            playerId: collectible.destroyed,
+            coinValue: collectible.value,
+            coinId: collectible.id
+        })
+    }
 
     collectible.draw(context, { goldCoinImg, silverCoinImg, bronzeCoinImg });
 
